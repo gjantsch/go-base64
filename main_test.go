@@ -6,7 +6,7 @@ func TestEncoder(t *testing.T) {
 	want := "YSBzaW1wbGUgdGVzdA=="
 	got := Base64Encode([]byte("a simple test"))
 	if got != want {
-		t.Fatalf("Wanted %s but got %s", want, got)
+		t.Errorf("Wanted %s but got %s", want, got)
 	}
 }
 
