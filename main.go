@@ -104,7 +104,16 @@ func Base64Decode(input []byte) string {
 		a = (a << 2) | (b >> 4)
 		b = (b << 4) | (c >> 2)
 		c = (c << 6) | d
-		decoded += string([]byte{a, b, c})
+		decoded += string([]byte{a})
+
+		if b != 0 {
+			decoded += string([]byte{b})
+		}
+
+		if c != 0 {
+			decoded += string([]byte{c})
+		}
+
 	}
 
 	return decoded
