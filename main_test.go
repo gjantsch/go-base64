@@ -14,6 +14,6 @@ func TestDecoder(t *testing.T) {
 	want := "a simple test"
 	got := Base64Decode([]byte("YSBzaW1wbGUgdGVzdA=="))
 	if got != want {
-		t.Fatalf("Wanted '%v' but got '%v'", []byte(want), []byte(got))
+		t.Errorf("Wanted '%v' but got '%v'", []byte(want), []byte(got))
 	}
 }
