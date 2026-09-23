@@ -19,6 +19,13 @@ var CODES = []byte{
 	'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7',
 	'8', '9', '+', '/'}
 
+// Encodes a byte slice into a Base64 encoded string.
+// How the encoding is performed: the input bytes are processed in groups of 3.
+// Each group of 3 bytes (24 bits) is split into four 6-bit values using bitwise
+// operations. Each 6-bit value is then used as an index into the CODES alphabet
+// (A-Z, a-z, 0-9, +, /) to produce the corresponding Base64 character.
+// If the input length is not a multiple of 3, padding characters '=' are appended:
+// one '=' when 2 bytes remain, and two '==' when only 1 byte remains.
 func Base64Encode(input []byte) string {
 	var i int
 	var enc [4]byte
@@ -58,6 +65,7 @@ func Base64Encode(input []byte) string {
 	return sb.String()
 }
 
+// Returns the index of the given Base64 character in the CODES array.
 func getIndex(input byte) byte {
 
 	if input == '/' {
@@ -81,6 +89,9 @@ func getIndex(input byte) byte {
 	return 0
 }
 
+// Decodes a Base64 encoded input string.
+// How the decoding is performed: each set of 4 Base64 characters is converted back into 3 bytes.
+// The padding character '=' is used to indicate the number of bytes that were added during encoding.
 func Base64Decode(input []byte) string {
 
 	var i int
