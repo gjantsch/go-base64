@@ -1,13 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"os"
-	"regexp"
 	"slices"
 	"strings"
 )
+
+const paddingChar = '='
 
 var CODES = []byte{
 	'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
@@ -16,36 +17,45 @@ var CODES = []byte{
 	'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n',
 	'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x',
 	'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7',
-	'8', '9', '+', '/', '='}
+	'8', '9', '+', '/'}
 
 func Base64Encode(input []byte) string {
 	var i int
 	var enc [4]byte
-	var encoded string
-	var input_length int = len(input)
+	var sb strings.Builder
+	var inputLength int = len(input)
 
-	for i = 0; i < input_length; i += 3 {
+	sb.Grow(((inputLength + 2) / 3) * 4)
+
+	for i = 0; i < inputLength; i += 3 {
 		enc[0] = (input[i] & 0b11111100) >> 2
 		enc[1] = (input[i] & 0b00000011) << 4
 
-		// by default last two chars point to filler '='
-		enc[2] = 0b01000000
-		enc[3] = 0b01000000
+		sb.WriteByte(CODES[enc[0]])
 
-		if input_length > i+1 {
+		if inputLength > i+1 {
 			enc[1] = enc[1] | ((input[i+1] & 0b11110000) >> 4)
 			enc[2] = (input[i+1] & 0b00001111) << 2
 
-			if input_length > i+2 {
+			sb.WriteByte(CODES[enc[1]])
+
+			if inputLength > i+2 {
 				enc[2] = enc[2] | ((input[i+2] & 0b11000000) >> 6)
 				enc[3] = input[i+2] & 0b00111111
+				sb.WriteByte(CODES[enc[2]])
+				sb.WriteByte(CODES[enc[3]])
+			} else {
+				sb.WriteByte(CODES[enc[2]])
+				sb.WriteByte(paddingChar)
 			}
+		} else {
+			sb.WriteByte(CODES[enc[1]])
+			sb.WriteByte(paddingChar)
+			sb.WriteByte(paddingChar)
 		}
-
-		encoded += string([]byte{CODES[enc[0]], CODES[enc[1]], CODES[enc[2]], CODES[enc[3]]})
 	}
 
-	return encoded
+	return sb.String()
 }
 
 func getIndex(input byte) byte {
@@ -58,19 +68,14 @@ func getIndex(input byte) byte {
 		return 62
 	}
 
-	// 0-9
-	if input >= 48 && input <= 57 {
-		return input + 4
+	if input >= '0' && input <= '9' {
+		return input - '0' + 52
 	}
-
-	// A-Z
-	if input >= 65 && input <= 90 {
-		return input - 65
+	if input >= 'A' && input <= 'Z' {
+		return input - 'A'
 	}
-
-	// a-z
-	if input >= 97 && input <= 122 {
-		return input - 71
+	if input >= 'a' && input <= 'z' {
+		return input - 'a' + 26
 	}
 
 	return 0
@@ -79,44 +84,44 @@ func getIndex(input byte) byte {
 func Base64Decode(input []byte) string {
 
 	var i int
-	var decoded string
+	var sb strings.Builder
 	var a, b, c, d byte
-	var input_length = len(input)
+	var inputLength = len(input)
 
-	for i = 0; i < input_length; i += 4 {
+	sb.Grow((inputLength / 4) * 3)
+
+	for i = 0; i < inputLength; i += 4 {
 		a = getIndex(input[i])
 		b = 0
 		c = 0
 		d = 0
 
-		if input_length > i+1 {
+		if inputLength > i+1 {
 			b = getIndex(input[i+1])
 		}
 
-		if input_length > i+2 {
+		if inputLength > i+2 {
 			c = getIndex(input[i+2])
 		}
 
-		if input_length > i+3 {
+		if inputLength > i+3 {
 			d = getIndex(input[i+3])
 		}
 
 		a = (a << 2) | (b >> 4)
 		b = (b << 4) | (c >> 2)
 		c = (c << 6) | d
-		decoded += string([]byte{a})
+		sb.WriteByte(a)
 
-		if b != 0 {
-			decoded += string([]byte{b})
+		if input[i+2] != '=' {
+			sb.WriteByte(b)
 		}
-
-		if c != 0 {
-			decoded += string([]byte{c})
+		if input[i+3] != '=' {
+			sb.WriteByte(c)
 		}
-
 	}
 
-	return decoded
+	return sb.String()
 }
 
 func printHelpMessage() {
@@ -141,7 +146,8 @@ func main() {
 
 	var opts string = "encode"
 	for i, opt := range args {
-		if opt == "-d" {
+		switch opt {
+		case "-d":
 			if len(args) < 3 {
 				fmt.Println("Invalid arguments.")
 				printHelpMessage()
@@ -149,20 +155,19 @@ func main() {
 			}
 			opts = "decode"
 			args = slices.Delete(args, i, i+1)
-
-		} else if opt == "-h" || opt == "--help" {
+		case "-h", "--help":
 			printHelpMessage()
 			return
 		}
 	}
 
 	if args[1] == "--" {
-		scanner := bufio.NewReader(os.Stdin)
-		input, _ = scanner.ReadBytes(0x0)
+		input, _ = io.ReadAll(os.Stdin)
+	} else if data, err := os.ReadFile(args[1]); err == nil {
+		input = data
 	} else {
-		re := regexp.MustCompile(`\s+`)
-		var cleaned string = re.ReplaceAllString(args[1], "")
-		cleaned = strings.TrimRight(cleaned, string(byte(0b00001010)))
+		cleaned := strings.Join(strings.Fields(args[1]), "")
+		cleaned = strings.TrimRight(cleaned, "\r\n")
 		input = []byte(cleaned)
 	}
 
