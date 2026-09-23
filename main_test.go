@@ -4,6 +4,32 @@ import (
 	"testing"
 )
 
+func TestGetIndex(t *testing.T) {
+	tests := []struct {
+		name  string
+		input byte
+		want  byte
+	}{
+		{"slash", '/', 63},
+		{"plus", '+', 62},
+		{"digit 0", '0', 52},
+		{"digit 9", '9', 61},
+		{"uppercase A", 'A', 0},
+		{"uppercase Z", 'Z', 25},
+		{"lowercase a", 'a', 26},
+		{"lowercase z", 'z', 51},
+		{"invalid character", '!', 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getIndex(tt.input)
+			if got != tt.want {
+				t.Errorf("getIndex(%q) = %d, want %d", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestCodec(t *testing.T) {
 	tests := []struct {
 		name    string
