@@ -1,8 +1,8 @@
 # go-base64
 
-A Base64 encoder/decoder written in Go for learning purposes.
+A Base64 encoder/decoder written in Go.
 
-Go already provides an [encoding/base64](https://pkg.go.dev/encoding/base64) package, but implementing it from scratch is a good exercise for working with bitwise operations and the Go standard library.
+Go already provides an [encoding/base64](https://pkg.go.dev/encoding/base64) package, but implementing it from scratch was a good exercise for working with bitwise operations.
 
 ## Usage
 
